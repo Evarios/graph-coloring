@@ -58,7 +58,13 @@ class ant {
 public:
 	vector<int>recentlyVisited;
 	int currentVertex;
+	int colorCurrentVertex(vector<int>colors, int avaliableColors);
 };
+
+int ant::colorCurrentVertex(vector<int>colors, int avaliableColors) {
+
+}
+
 const int MODE = 1; //1 - graph coloring; 2- instance generator
 int main() {
 
@@ -179,6 +185,7 @@ int main() {
 		for (int i = 1; i <= v; i++) {
 			verticesConflict[i] = calculateConflict(vertices, colors, i);
 		}
+		totalConflict = calculateTotalConflict(verticesMatrix, colors, v);
 		
 		cout << "XD";
 
