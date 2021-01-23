@@ -82,7 +82,7 @@ public:
 	int currentVertex = -1;
 	ant(int, int);
 	int colorCurrentVertex(vector<int>&colors, vector<vector<int>>verticesList, int avaliableColors);
-	void updateNeighbourConflict(vector<int>&verticesConflict, vector<vector<int>>verticesList, vector<int>colors);
+	void updateNeighbourConflict(vector<int>&verticesConflict, vector<vector<int>>verticesList, vector<int>colors, int prevColor);
 	void addCurrentVertexToTabu();
 	void move(vector<vector<int>>verticesList, vector<int>verticesConflict);
 };
@@ -101,14 +101,14 @@ int ant::colorCurrentVertex(vector<int>&colors, vector<vector<int>>verticesList,
 		colors[currentVertex] = i;
 		currentConflict = calculateConflict(verticesList, colors, currentVertex);
 		if (currentConflict == 0) {
-			return i;
+			return startColor;
 		}
 		else {
 			conflictNumbers.push_back(currentConflict);
 		}
 	}
 	if (currentConflict == 0) {
-		return 0;
+		return startColor;
 	}
 	minIndex = 0;
 	minConflict = conflictNumbers[0];
@@ -119,14 +119,24 @@ int ant::colorCurrentVertex(vector<int>&colors, vector<vector<int>>verticesList,
 		}
 	}
 	colors[currentVertex] = minIndex;
-	return minIndex;
+	return startColor;
 }
 
-void ant::updateNeighbourConflict(vector<int>&verticesConflict, vector<vector<int>>verticesList, vector<int>colors) {
+void ant::updateNeighbourConflict(vector<int>&verticesConflict, vector<vector<int>>verticesList, vector<int>colors, int prevColor) {
+	int currentColor = colors[currentVertex];
 	verticesConflict[currentVertex] = calculateConflict(verticesList, colors, currentVertex);
 	int l = verticesList[currentVertex].size();
 	for (int i = 0; i < l; i++) {
-		verticesConflict[verticesList[currentVertex][i]] = calculateConflict(verticesList, colors, verticesList[currentVertex][i]);
+		if (currentColor != colors[verticesList[currentVertex][i]] && prevColor == colors[verticesList[currentVertex][i]]) {
+			verticesConflict[verticesList[currentVertex][i]]--;
+		}
+		else if (currentColor != colors[verticesList[currentVertex][i]] && prevColor != colors[verticesList[currentVertex][i]]) {
+
+		}
+		else {
+			verticesConflict[verticesList[currentVertex][i]]++;
+		}
+		//verticesConflict[verticesList[currentVertex][i]] = calculateConflict(verticesList, colors, verticesList[currentVertex][i]);
 	}
 	return;
 }
@@ -296,8 +306,9 @@ int main() {
 		for (int cycle = 0; cycle < nCycles; cycle++) {
 			for (int antNum = 0; antNum < nAnts; antNum++) {
 				for (int move = 0; move < nMoves; move++) {
-					ants[antNum].colorCurrentVertex(colors, vertices, availableColors);
-					ants[antNum].updateNeighbourConflict(verticesConflict, vertices, colors);
+					int prevColor;
+					prevColor = ants[antNum].colorCurrentVertex(colors, vertices, availableColors);
+					ants[antNum].updateNeighbourConflict(verticesConflict, vertices, colors, prevColor);
 					ants[antNum].move(vertices, verticesConflict);
 				}
 			}
