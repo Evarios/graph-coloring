@@ -31,7 +31,8 @@ bool isInVector(vector<int>values, int x) {
 
 int calculateConflict(vector<vector<int>>verticesList, vector<int>colors, int vertex) {
 	int conflict = 0;
-	for (int i = 0; i < verticesList[vertex].size(); i++) {
+	int s = verticesList[vertex].size();
+	for (int i = 0; i < s; i++) {
 		if (colors[vertex] == colors[verticesList[vertex][i]]) {
 			conflict++;
 		}
@@ -325,9 +326,9 @@ int main() {
 		vector<bool>color2(v, true); // tablica do zliczania kolorów
 		int colorsNumber2 = 0;
 		for (int i = 1; i <= v; i++) {
-			cout << "wierzcholek " << i << " jest pokolorwany kolorem " << colors[i] << endl;
-			if (color2[colors[i]]) {
-				color2[colors[i]] = false;
+			cout << "wierzcholek " << i << " jest pokolorwany kolorem " << bestColoring[i] << endl;
+			if (color2[bestColoring[i]]) {
+				color2[bestColoring[i]] = false;
 				colorsNumber2++;
 			}
 		}
