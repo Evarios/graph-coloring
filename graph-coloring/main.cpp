@@ -6,6 +6,8 @@
 #include <random>
 #include <cmath>
 #include <algorithm>
+#include <deque>
+#include <utility>
 using namespace std;
 
 int min2(int a, int b) {
@@ -53,16 +55,113 @@ int calculateTotalConflict(vector<vector<int>>verticesMatrix, vector<int>colors,
 	}
 	return totalConflict;
 }
-
+void jolt(vector<int>& colors, vector<int>verticesConflict, vector<vector<int>>verticesList, int avaliableColors) {
+	mt19937 mt_rand(time(0));
+	vector<pair<int, int>>conflictList;
+	int avaliable80= ceil(0.8 * avaliableColors);
+	for (int i = 0; i < verticesConflict.size(); i++) {
+		conflictList.push_back(make_pair(verticesConflict[i], i));
+	}
+	int s = conflictList.size();
+	sort(conflictList.rbegin(), conflictList.rend());
+	int i = 0;
+	while ((double)i / (double)s < 0.10) {
+		int vertexNum = conflictList[i].second;
+		for (int j = 0; j < verticesList[vertexNum].size(); j++) {
+			colors[j] = mt_rand() % avaliable80;
+		}
+		i++;
+	}
+	return;
+}
 class ant {
 public:
-	vector<int>recentlyVisited;
-	int currentVertex;
-	int colorCurrentVertex(vector<int>colors, int avaliableColors);
+	int tabuListSize;
+	deque<int>recentlyVisited;
+	int currentVertex = -1;
+	ant(int, int);
+	int colorCurrentVertex(vector<int>&colors, vector<vector<int>>verticesList, int avaliableColors);
+	void updateNeighbourConflict(vector<int>&verticesConflict, vector<vector<int>>verticesList, vector<int>colors);
+	void addCurrentVertexToTabu();
+	void move(vector<vector<int>>verticesList, vector<int>verticesConflict);
 };
 
-int ant::colorCurrentVertex(vector<int>colors, int avaliableColors) {
+ant::ant(int size, int vertex) {
+	tabuListSize = size;
+	currentVertex = vertex;
+}
 
+int ant::colorCurrentVertex(vector<int>&colors, vector<vector<int>>verticesList, int avaliableColors) {
+	int startColor = colors[currentVertex];
+	int minIndex, minConflict;
+	vector<int>conflictNumbers;
+	int currentConflict = 0;
+	for (int i = 0; i < avaliableColors; i++) {
+		colors[currentVertex] = i;
+		currentConflict = calculateConflict(verticesList, colors, currentVertex);
+		if (currentConflict == 0) {
+			return i;
+		}
+		else {
+			conflictNumbers.push_back(currentConflict);
+		}
+	}
+	if (currentConflict == 0) {
+		return 0;
+	}
+	minIndex = 0;
+	minConflict = conflictNumbers[0];
+	for (int i = 0; i < avaliableColors; i++) {
+		if (conflictNumbers[i] < minConflict) {
+			minConflict = conflictNumbers[i];
+			minIndex = i;
+		}
+	}
+	colors[currentVertex] = minIndex;
+	return minIndex;
+}
+
+void ant::updateNeighbourConflict(vector<int>&verticesConflict, vector<vector<int>>verticesList, vector<int>colors) {
+	verticesConflict[currentVertex] = calculateConflict(verticesList, colors, currentVertex);
+	int l = verticesList[currentVertex].size();
+	for (int i = 0; i < l; i++) {
+		verticesConflict[verticesList[currentVertex][i]] = calculateConflict(verticesList, colors, verticesList[currentVertex][i]);
+	}
+	return;
+}
+
+void ant::addCurrentVertexToTabu() {
+	if (recentlyVisited.size() >= tabuListSize) {
+		recentlyVisited.pop_front();
+	}
+	recentlyVisited.push_back(currentVertex);
+	return;
+}
+
+void ant::move(vector<vector<int>>verticesList, vector<int>verticesConflict) {
+	mt19937 mt_rand(time(0));
+	vector<int>conflictNumbers;
+	int maxIndex, maxConflict;
+	int k;
+	int s = verticesList[currentVertex].size();
+	if (s != 0) {
+		k = mt_rand() % s;
+		currentVertex = verticesList[currentVertex][k];
+		int l = verticesList[currentVertex].size();
+
+		for (int i = 0; i < l; i++) {
+			conflictNumbers.push_back(verticesConflict[verticesList[currentVertex][i]]);
+		}
+		maxIndex = 0; maxConflict = conflictNumbers[0];
+		for (int i = 0; i < conflictNumbers.size(); i++) {
+			if (conflictNumbers[i] > maxConflict) {
+				maxConflict = conflictNumbers[i];
+				maxIndex = i;
+			}
+		}
+		currentVertex = verticesList[currentVertex][maxIndex];
+	}	
+	return;
 }
 
 const int MODE = 1; //1 - graph coloring; 2- instance generator
@@ -186,18 +285,59 @@ int main() {
 			verticesConflict[i] = calculateConflict(vertices, colors, i);
 		}
 		totalConflict = calculateTotalConflict(verticesMatrix, colors, v);
-		
-		cout << "XD";
+		int cyclesNotImproved = 0;
+		//generowanie mrówek
+		vector<ant>ants;
+		for (int i = 0; i < nAnts; i++) {
+			ant tempAnt(R_SIZE_LIMIT, (mt_rand() % v) + 1);
+			ants.push_back(tempAnt);
+		}
+		for (int cycle = 0; cycle < nCycles; cycle++) {
+			for (int antNum = 0; antNum < nAnts; antNum++) {
+				for (int move = 0; move < nMoves; move++) {
+					ants[antNum].colorCurrentVertex(colors, vertices, availableColors);
+					ants[antNum].updateNeighbourConflict(verticesConflict, vertices, colors);
+					ants[antNum].move(vertices, verticesConflict);
+				}
+			}
+			totalConflict = calculateTotalConflict(verticesMatrix, colors, v);
+			if (totalConflict == 0 && bestNumColors > availableColors) {
+				bestColoring = colors;
+				bestNumColors = availableColors;
+				availableColors = availableColors - 1;
+				cyclesNotImproved = 0;
+			}
+			else {
+				cyclesNotImproved++;
+			}
+			if (cyclesNotImproved >= nChangeCycle) {
+				availableColors += 1;
+			}
+			if (cyclesNotImproved >= nJoltCycles) {
+				jolt(colors, verticesConflict, vertices, availableColors);
+			}
+			if (cyclesNotImproved >= nBreakCycles) {
+				break;
+			}
+		}
 
 
-
-
+		vector<bool>color2(v, true); // tablica do zliczania kolorów
+		int colorsNumber2 = 0;
+		for (int i = 1; i <= v; i++) {
+			cout << "wierzcholek " << i << " jest pokolorwany kolorem " << colors[i] << endl;
+			if (color2[colors[i]]) {
+				color2[colors[i]] = false;
+				colorsNumber2++;
+			}
+		}
+		cout << "Do pokolorowania grafu uzyto " << colorsNumber2 << " kolorow" << endl;
 
 
 
 	}	
 	
 
-
+	cout << "XD";
 	return 0;
 }
