@@ -272,7 +272,7 @@ int main() {
 	//############################################################################################################
 	//Powy¿ej wygenerowane rozwi¹zanie zach³anne, teraz przygotowanie heurystyki
 
-		const int nAnts = 0.2 * v;
+		const int nAnts = (0.2 * v) > 100 ? 100 : 0.2 * v;
 		const int nCycles = min2(6 * v, 4000);
 		const float alpha = 0.88, beta = 0.5, gamma = 0.7;
 		const int nMoves = nAnts < 100 ? v / 4 : 20 + v / nAnts;
@@ -346,7 +346,11 @@ int main() {
 				cout << "Do pokolorowania grafu uzyto " << newBestColorsNumber << " kolorow" << endl;
 				for (int i = 1; i <= v; i++) {
 					if (colors[i] > availableColors) {
-						colors[i] = mt_rand()%bestNumColors;
+						colors[i] = mt_rand()%availableColors;
+						verticesConflict[i] = calculateConflict(vertices, colors, i);
+						for (int j = 0; j < vertices[i].size(); j++) {
+							verticesConflict[vertices[i][j]] = calculateConflict(vertices, colors, vertices[i][j]);
+						}
 					}
 				}
 			}
