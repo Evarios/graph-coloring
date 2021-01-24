@@ -40,8 +40,9 @@ int calculateConflict(vector<vector<int>>verticesList, vector<int>colors, int ve
 	return conflict;
 }
 
-int calculateTotalConflict(vector<vector<int>>verticesMatrix, vector<int>colors, int verticesNumber) {
+int calculateTotalConflict(vector<vector<int>>verticesMatrixOrginal, vector<int>colors, int verticesNumber) {
 	int totalConflict = 0;
+	vector<vector<int>>verticesMatrix = verticesMatrixOrginal;
 	for (int i = 1; i <= verticesNumber; i++) {
 		for (int j = 1; j <= verticesNumber; j++) {
 			if (verticesMatrix[i][j] == 1) {
@@ -93,32 +94,40 @@ ant::ant(int size, int vertex) {
 }
 
 int ant::colorCurrentVertex(vector<int>&colors, vector<vector<int>>verticesList, int avaliableColors) {
+	mt19937 mt_rand(time(0));
 	int startColor = colors[currentVertex];
-	int minIndex, minConflict;
-	vector<int>conflictNumbers;
+	int minIndex, minConflict, minConflictColor, minConflictIndex;
+	vector<pair<int,int>>conflictNumbers;
+	vector<int>neighbourColors(avaliableColors, 0);
+	int s = verticesList[currentVertex].size();
+	for (int i = 0; i < s; i++) {
+		neighbourColors[colors[verticesList[currentVertex][i]]]++;
+	}
 	int currentConflict = 0;
 	for (int i = 0; i < avaliableColors; i++) {
-		colors[currentVertex] = i;
-		currentConflict = calculateConflict(verticesList, colors, currentVertex);
-		if (currentConflict == 0) {
-			return startColor;
-		}
-		else {
-			conflictNumbers.push_back(currentConflict);
-		}
+		conflictNumbers.push_back(make_pair(neighbourColors[i], i));
 	}
-	if (currentConflict == 0) {
-		return startColor;
-	}
+
+	sort(conflictNumbers.begin(), conflictNumbers.end());
 	minIndex = 0;
-	minConflict = conflictNumbers[0];
+	minConflict = conflictNumbers[0].first;
 	for (int i = 0; i < avaliableColors; i++) {
-		if (conflictNumbers[i] < minConflict) {
-			minConflict = conflictNumbers[i];
+		if (conflictNumbers[i].first > minConflict) {
 			minIndex = i;
+			break;
 		}
 	}
-	colors[currentVertex] = minIndex;
+	minConflictIndex = mt_rand() % minIndex;
+	minConflictColor = conflictNumbers[minConflictIndex].second;
+	if (!recentlyVisited.empty()) {
+		if (minConflictColor = colors[recentlyVisited.back()])
+		{
+			conflictNumbers.erase(conflictNumbers.begin() + minConflictIndex);
+		}
+	}
+	minConflictIndex = mt_rand() % minIndex;
+	minConflictColor = conflictNumbers[minConflictIndex].second;
+	colors[currentVertex] = minConflictColor;
 	return startColor;
 }
 
@@ -264,13 +273,13 @@ int main() {
 	//Powy¿ej wygenerowane rozwi¹zanie zach³anne, teraz przygotowanie heurystyki
 
 		const int nAnts = 0.2 * v;
-		const int nCycles = min2(3 * v, 4000);
-		const float alpha = 0.85, beta = 0.7, gamma = 0.8;
+		const int nCycles = min2(6 * v, 4000);
+		const float alpha = 0.88, beta = 0.5, gamma = 0.7;
 		const int nMoves = nAnts < 100 ? v / 4 : 20 + v / nAnts;
 		const int R_SIZE_LIMIT = nMoves / 3;
 		const int nChangeCycle = 20;
 		const int nJoltCycles = max2(v / 2, 600);
-		const int nBreakCycles = max2(2 * v, 1600);
+		const int nBreakCycles = max2(5 * v, 1600);
 		//start algorytmu
 		auto bestColoring = colors;
 		int bestNumColors = colorsNumber;
@@ -335,6 +344,11 @@ int main() {
 					}
 				}
 				cout << "Do pokolorowania grafu uzyto " << newBestColorsNumber << " kolorow" << endl;
+				for (int i = 1; i <= v; i++) {
+					if (colors[i] > availableColors) {
+						colors[i] = mt_rand()%bestNumColors;
+					}
+				}
 			}
 			else {
 				cyclesNotImproved++;
