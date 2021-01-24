@@ -136,7 +136,6 @@ void ant::updateNeighbourConflict(vector<int>&verticesConflict, vector<vector<in
 		else {
 			verticesConflict[verticesList[currentVertex][i]]++;
 		}
-		//verticesConflict[verticesList[currentVertex][i]] = calculateConflict(verticesList, colors, verticesList[currentVertex][i]);
 	}
 	return;
 }
@@ -153,24 +152,30 @@ void ant::move(vector<vector<int>>verticesList, vector<int>verticesConflict) {
 	mt19937 mt_rand(time(0));
 	vector<int>conflictNumbers;
 	int maxIndex, maxConflict;
+	int prevVertex = currentVertex;
 	int k;
 	int s = verticesList[currentVertex].size();
 	if (s != 0) {
-		k = mt_rand() % s;
-		currentVertex = verticesList[currentVertex][k];
-		int l = verticesList[currentVertex].size();
+		int z = 0;
+		do {
+			k = mt_rand() % s;
+			currentVertex = verticesList[prevVertex][k];
+			int l = verticesList[prevVertex].size();
 
-		for (int i = 0; i < l; i++) {
-			conflictNumbers.push_back(verticesConflict[verticesList[currentVertex][i]]);
-		}
-		maxIndex = 0; maxConflict = conflictNumbers[0];
-		for (int i = 0; i < conflictNumbers.size(); i++) {
-			if (conflictNumbers[i] > maxConflict) {
-				maxConflict = conflictNumbers[i];
-				maxIndex = i;
+			for (int i = 0; i < l; i++) {
+				conflictNumbers.push_back(verticesConflict[verticesList[prevVertex][i]]);
 			}
-		}
-		currentVertex = verticesList[currentVertex][maxIndex];
+			maxIndex = 0; maxConflict = conflictNumbers[0];
+			for (int i = 0; i < conflictNumbers.size(); i++) {
+				if (conflictNumbers[i] > maxConflict) {
+					maxConflict = conflictNumbers[i];
+					maxIndex = i;
+				}
+			}
+			currentVertex = verticesList[prevVertex][maxIndex];
+			z++;
+		} while ((find(recentlyVisited.begin(), recentlyVisited.end(), currentVertex) != recentlyVisited.end()) && z <20);
+		
 	}	
 	return;
 }
@@ -259,13 +264,13 @@ int main() {
 	//Powy¿ej wygenerowane rozwi¹zanie zach³anne, teraz przygotowanie heurystyki
 
 		const int nAnts = 0.2 * v;
-		const int nCycles = min2(6 * v, 4000);
-		const float alpha = 0.8, beta = 0.5, gamma = 0.7;
+		const int nCycles = min2(3 * v, 4000);
+		const float alpha = 0.85, beta = 0.7, gamma = 0.8;
 		const int nMoves = nAnts < 100 ? v / 4 : 20 + v / nAnts;
 		const int R_SIZE_LIMIT = nMoves / 3;
 		const int nChangeCycle = 20;
 		const int nJoltCycles = max2(v / 2, 600);
-		const int nBreakCycles = max2(5 * v, 1600);
+		const int nBreakCycles = max2(2 * v, 1600);
 		//start algorytmu
 		auto bestColoring = colors;
 		int bestNumColors = colorsNumber;
@@ -309,20 +314,32 @@ int main() {
 					int prevColor;
 					prevColor = ants[antNum].colorCurrentVertex(colors, vertices, availableColors);
 					ants[antNum].updateNeighbourConflict(verticesConflict, vertices, colors, prevColor);
+					ants[antNum].addCurrentVertexToTabu();
 					ants[antNum].move(vertices, verticesConflict);
 				}
 			}
 			totalConflict = calculateTotalConflict(verticesMatrix, colors, v);
 			if (totalConflict == 0 && bestNumColors > availableColors) {
+				vector<bool>newBestColoring(v, true);
+				int newBestColorsNumber = 0;
+				cout << endl << "####################### ZNALEZIONO LEPSZE POKOLOROWANIE    ###########################" << endl << availableColors << "kolorow " << endl;
 				bestColoring = colors;
 				bestNumColors = availableColors;
 				availableColors = availableColors - 1;
 				cyclesNotImproved = 0;
+				for (int i = 1; i <= v; i++) {
+					cout << "wierzcholek " << i << " jest pokolorwany kolorem " << bestColoring[i] << endl;
+					if (newBestColoring[bestColoring[i]]) {
+						newBestColoring[bestColoring[i]] = false;
+						newBestColorsNumber++;
+					}
+				}
+				cout << "Do pokolorowania grafu uzyto " << newBestColorsNumber << " kolorow" << endl;
 			}
 			else {
 				cyclesNotImproved++;
 			}
-			if (cyclesNotImproved >= nChangeCycle) {
+			if (cyclesNotImproved >= nChangeCycle && availableColors <bestNumColors) {
 				availableColors += 1;
 			}
 			if (cyclesNotImproved >= nJoltCycles) {
@@ -337,19 +354,19 @@ int main() {
 		vector<bool>color2(v, true); // tablica do zliczania kolorów
 		int colorsNumber2 = 0;
 		for (int i = 1; i <= v; i++) {
-			cout << "wierzcholek " << i << " jest pokolorwany kolorem " << bestColoring[i] << endl;
+			cout <<endl<< "wierzcholek " << i << " jest pokolorwany kolorem " << bestColoring[i] << endl;
 			if (color2[bestColoring[i]]) {
 				color2[bestColoring[i]] = false;
 				colorsNumber2++;
 			}
 		}
 		cout << "Do pokolorowania grafu uzyto " << colorsNumber2 << " kolorow" << endl;
-
+		cout << "XD";
 
 
 	}	
 	
 
-	cout << "XD";
+	
 	return 0;
 }
