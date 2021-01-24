@@ -57,7 +57,7 @@ int calculateTotalConflict(vector<vector<int>>verticesMatrixOrginal, vector<int>
 	}
 	return totalConflict;
 }
-void jolt(vector<int>& colors, vector<int>verticesConflict, vector<vector<int>>verticesList, int avaliableColors) {
+void jolt(vector<int>& colors, vector<int>&verticesConflict, vector<vector<int>>verticesList, int avaliableColors) {
 	mt19937 mt_rand(time(0));
 	vector<pair<int, int>>conflictList;
 	int avaliable80= ceil(0.8 * avaliableColors);
@@ -73,6 +73,9 @@ void jolt(vector<int>& colors, vector<int>verticesConflict, vector<vector<int>>v
 			colors[j] = mt_rand() % avaliable80;
 		}
 		i++;
+	}
+	for (int i = 1; i < verticesList.size(); i++) {
+		verticesConflict[i] = calculateConflict(verticesList, colors, i);
 	}
 	return;
 }
